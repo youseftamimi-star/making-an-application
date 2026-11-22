@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { api, type Customer } from "@/lib/client";
 import { formatAgorot } from "@/lib/money";
+import { debtLevel } from "@/lib/debtLevel";
 import { useMe } from "@/components/useMe";
 
 export default function RegisterHome() {
@@ -68,8 +69,13 @@ export default function RegisterHome() {
                   •••{c.phoneLast4}
                 </span>
               </span>
-              <span className={`text-xl font-bold tabular-nums ${c.balance > 0 ? "text-rose-600" : "text-slate-400"}`}>
-                {formatAgorot(c.balance)}
+              <span className="flex items-center gap-2">
+                <span className="text-2xl" title={debtLevel(c.balance).title} aria-label={debtLevel(c.balance).title}>
+                  {debtLevel(c.balance).emoji}
+                </span>
+                <span className={`text-xl font-bold tabular-nums ${c.balance > 0 ? "text-rose-600" : "text-slate-400"}`}>
+                  {formatAgorot(c.balance)}
+                </span>
               </span>
             </Link>
           </li>
