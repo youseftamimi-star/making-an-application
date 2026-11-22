@@ -276,3 +276,37 @@ test("employees can't reach owner screens or APIs, and no API exposes a hash", a
   const anon = await browser.newContext();
   expect((await anon.request.get("/api/customers")).status()).toBe(401);
 });
+
+test("customer card is green / yellow / red by days without a payment", async ({ browser }) => {
+  const page = await session(browser, OWNER);
+  const res = await page.request.post("/api/customers", {
+    data: { name: "גיל ותיק", phone: "0546660001", creditLimit: null, pin: "1234" },
+  });
+  expect(res.ok(), await res.text()).toBeTruthy();
+  const { id } = (await res.json()) as { id: string };
+  const addTx = (type: "debt" | "payment", amount: number) =>
+    page.request.post("/api/transactions", { data: { customerId: id, type, amount, pin: "1234" } });
+  expect((await addTx("debt", 10000)).ok()).toBeTruthy();
+
+  const card = page.getByTestId("debt-age");
+  const backdate = (days: number) =>
+    sql(`update transactions set created_at = now() - make_interval(days => $2) where customer_id = $1`, [id, days]);
+
+  await page.goto(`/c/${id}`);
+  await expect(card).toHaveAttribute("data-level", "ok");
+
+  await backdate(45);
+  await page.reload();
+  await expect(card).toHaveAttribute("data-level", "warn");
+  await expect(card).toContainText("45 ימים בלי תשלום");
+
+  await backdate(75);
+  await page.reload();
+  await expect(card).toHaveAttribute("data-level", "late");
+  await expect(card).toContainText("75 ימים בלי תשלום");
+
+  // a payment today resets the clock
+  expect((await addTx("payment", 1000)).ok()).toBeTruthy();
+  await page.reload();
+  await expect(card).toHaveAttribute("data-level", "ok");
+});

@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, errorText, type Customer } from "@/lib/client";
 import { formatAgorot, parseShekelsToAgorot } from "@/lib/money";
 import { formatDateTime } from "@/lib/format";
+import { debtAge, type DebtAgeLevel } from "@/lib/debtAge";
 import { AmountKeypad } from "@/components/AmountKeypad";
 import { PinOverlay } from "@/components/PinOverlay";
 import { CancelTx } from "@/components/CancelTx";
@@ -23,6 +24,13 @@ type HistoryRow = {
   staffName: string;
 };
 type Data = { customer: Customer; history: HistoryRow[]; serverNow: string };
+
+/** Balance card colors: green up to 30 days without a payment, yellow 30–60, red over 60. */
+const AGE_STYLE: Record<DebtAgeLevel, { card: string; badge: string }> = {
+  ok: { card: "!border-emerald-400 !bg-emerald-50", badge: "bg-emerald-100 text-emerald-800" },
+  warn: { card: "!border-amber-400 !bg-amber-50", badge: "bg-amber-100 text-amber-800" },
+  late: { card: "!border-rose-500 !bg-rose-50", badge: "bg-rose-100 text-rose-800" },
+};
 
 export default function CustomerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -51,6 +59,7 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
 
   const agorot = parseShekelsToAgorot(amount);
   const locked = !!c.pinLockedUntil && new Date(c.pinLockedUntil).getTime() > Date.now() + skew;
+  const age = debtAge(c.balance, history, Date.now() + skew);
 
   function start(type: "debt" | "payment") {
     setFormError(null);
@@ -66,12 +75,19 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
 
   return (
     <div className="space-y-4">
-      <Card className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+      <Card
+        className={`flex flex-wrap items-center justify-between gap-3 border-2 ${AGE_STYLE[age.level].card}`}
+      >
+        <div data-testid="debt-age" data-level={age.level}>
           <h1 className="text-3xl font-bold">{c.name}</h1>
           <p className="text-slate-500" dir="ltr">
             {c.phone.replace(/^(\d{3})(\d+)$/, "$1-$2")}
           </p>
+          {age.days != null && (
+            <p className={`mt-1 inline-block rounded-md px-2 py-0.5 text-sm font-medium ${AGE_STYLE[age.level].badge}`}>
+              {age.days === 0 ? "שילם או נרשם היום" : `${age.days} ימים בלי תשלום`}
+            </p>
+          )}
           {locked && <p className="mt-1 text-sm font-medium text-amber-700">הקוד נעול זמנית אחרי ניסיונות שגויים</p>}
         </div>
         <div className="text-end">
