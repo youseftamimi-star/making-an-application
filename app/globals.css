@@ -15,6 +15,17 @@
   }
 }
 
+/* Money rain on a payment (src/components/MoneyRain.tsx) */
+@keyframes money-fall {
+  0% { transform: translateY(-15vh) rotate(0deg); opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translateY(110vh) rotate(var(--spin, 360deg)); opacity: 0; }
+}
+.money-drop { animation-name: money-fall; animation-timing-function: ease-in; animation-fill-mode: both; }
+@media (prefers-reduced-motion: reduce) {
+  .money-rain { display: none; }
+}
+
 html, body { background: #f1f5f9; color: #0f172a; }
 button { cursor: pointer; touch-action: manipulation; }
 button:disabled { cursor: default; }
