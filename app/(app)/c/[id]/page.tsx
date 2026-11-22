@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, errorText, type Customer } from "@/lib/client";
 import { formatAgorot, parseShekelsToAgorot } from "@/lib/money";
 import { formatDateTime } from "@/lib/format";
+import { debtLevel, partnerJoke } from "@/lib/debtLevel";
 import { AmountKeypad } from "@/components/AmountKeypad";
 import { PinOverlay } from "@/components/PinOverlay";
 import { CancelTx } from "@/components/CancelTx";
@@ -63,6 +64,7 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
 
   const after = pending && agorot ? (pending === "debt" ? c.balance + agorot : c.balance - agorot) : 0;
   const overLimit = pending === "debt" && c.creditLimit != null && after > c.creditLimit;
+  const level = debtLevel(c.balance);
 
   return (
     <div className="space-y-4">
@@ -78,6 +80,9 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
           <p className="text-sm text-slate-500">יתרת חוב</p>
           <p data-testid="balance" className={`text-4xl font-bold tabular-nums ${c.balance > 0 ? "text-rose-600" : "text-slate-700"}`}>
             {formatAgorot(c.balance)}
+          </p>
+          <p data-testid="debt-level" className="text-base font-medium text-slate-600">
+            <span aria-hidden="true">{level.emoji}</span> {level.title}
           </p>
           <p className="text-sm text-slate-500">
             תקרת אשראי: {c.creditLimit == null ? "ללא" : formatAgorot(c.creditLimit)}
@@ -174,7 +179,9 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
               ? `חריגה מתקרת האשראי (${formatAgorot(c.creditLimit!)}). נדרש אישור בעלים.`
               : locked
                 ? "הקוד של הלקוח נעול זמנית. בעל העסק יכול לאשר."
-                : undefined
+                : pending === "debt"
+                  ? partnerJoke(c.balance)
+                  : undefined
           }
           onPin={(pin) => api("/api/transactions", { body: { customerId: c.id, type: pending, amount: agorot, pin } })}
           onOverride={(override) =>
