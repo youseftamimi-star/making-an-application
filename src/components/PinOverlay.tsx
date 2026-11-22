@@ -92,7 +92,10 @@ export function PinOverlay(p: Props) {
 
   if (done) {
     if (!p.successText) return <ImmediateDone onDone={p.onDone} />;
-    return <SuccessFlash text={p.successText} onDone={p.onDone} />;
+    // Celebrate real payments only (not cancellations, which carry a label).
+    const s = p.summary;
+    const celebrate = s?.type === "payment" && !s.label ? (s.after === 0 ? "paidOff" : "payment") : undefined;
+    return <SuccessFlash text={p.successText} onDone={p.onDone} celebrate={celebrate} />;
   }
 
   const s = p.summary;

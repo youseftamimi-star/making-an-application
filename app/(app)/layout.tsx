@@ -4,6 +4,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { api, type Me } from "@/lib/client";
 import { MeContext } from "@/components/useMe";
+import { useEffect, useState } from "react";
+import { isSoundOn, playChaChing, setSoundOn } from "@/lib/sound";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -50,6 +52,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <span className="hidden text-sm text-slate-500 sm:inline">
             {u.name} · {u.role === "owner" ? "בעלים" : "עובד"}
           </span>
+          <SoundToggle />
           <button
             className="rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"
             onClick={async () => {
@@ -63,5 +66,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </header>
       <main className="mx-auto max-w-4xl px-4 py-4">{children}</main>
     </MeContext.Provider>
+  );
+}
+
+/** Per-device mute for the payment "cha-ching". */
+function SoundToggle() {
+  const [on, setOn] = useState(true);
+  useEffect(() => setOn(isSoundOn()), []);
+  return (
+    <button
+      className="rounded-lg px-2 py-2 text-lg hover:bg-slate-100"
+      aria-label={on ? "השתקת צליל תשלום" : "הפעלת צליל תשלום"}
+      title={on ? "השתקת צליל תשלום" : "הפעלת צליל תשלום"}
+      onClick={() => {
+        setSoundOn(!on);
+        setOn(!on);
+        if (!on) playChaChing();
+      }}
+    >
+      {on ? "🔊" : "🔇"}
+    </button>
   );
 }
